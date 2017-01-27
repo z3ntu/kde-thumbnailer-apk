@@ -1,6 +1,7 @@
 /*
  *  This file is part of kde-thumbnailer-apk
  *  Copyright (C) 2013 Ni Hui <shuizhuyuanluo@126.com>
+ *  Copyright (C) 2017 Luca Weiss <luca (at) z3ntu (dot) xyz>
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
@@ -21,15 +22,12 @@
 
 #include "apkcreator.h"
 
-#include <QDataStream>
 #include <QImage>
-#include <QString>
 #include <KZip>
-#include <KZipFileEntry>
-#include <kdemacros.h>
 
 extern "C" {
-    KDE_EXPORT ThumbCreator* new_creator() {
+    Q_DECL_EXPORT ThumbCreator* new_creator()
+    {
         return new ApkCreator;
     }
 }
@@ -95,11 +93,9 @@ static quint32 get_application_icon_resource_reference_id(const QByteArray& stre
                     QString s = QString::fromUtf16(utf16str, len);
                     if (s == "manifest") {
                         str_manifest_index = i;
-                    }
-                    else if (s == "application") {
+                    } else if (s == "application") {
                         str_application_index = i;
-                    }
-                    else if (s == "icon") {
+                    } else if (s == "icon") {
                         str_icon_index = i;
                     }
                     delete[] utf16str;

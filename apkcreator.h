@@ -1,6 +1,7 @@
 /*
  *  This file is part of kde-thumbnailer-apk
  *  Copyright (C) 2013 Ni Hui <shuizhuyuanluo@126.com>
+ *  Copyright (C) 2017 Luca Weiss <luca (at) z3ntu (dot) xyz>
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
@@ -26,10 +27,10 @@
 
 class ApkCreator : public ThumbCreator
 {
-    public:
-        explicit ApkCreator();
-        virtual ~ApkCreator();
-        virtual bool create( const QString& path, int width, int height, QImage& img );
+public:
+    explicit ApkCreator();
+    virtual ~ApkCreator();
+    virtual bool create( const QString& path, int width, int height, QImage& img );
 };
 
 #endif // APKCREATOR_H
