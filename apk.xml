@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/vnd.android.package-archive">
+    <sub-class-of type="application/zip"/>
+    <comment>Android application package file</comment>
+    <comment xml:lang="zh_CN">安卓应用程序软件包文件</comment>
+    <glob pattern="*.apk"/>
+  </mime-type>
+</mime-info>

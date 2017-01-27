@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Service
+Name=Android Application Package File
+Name[zh_CN]=安卓应用程序软件包文件
+X-KDE-ServiceTypes=ThumbCreator
+MimeType=application/vnd.android.package-archive;
+CacheThumbnail=true
+IgnoreMaximumSize=true
+X-KDE-Library=apkthumbnail
