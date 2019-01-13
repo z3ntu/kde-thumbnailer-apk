@@ -45,9 +45,9 @@ static quint32 get_application_icon_resource_reference_id(const QByteArray& stre
     QDataStream in(stream);
     in.setByteOrder(QDataStream::LittleEndian);
 
-    quint32 str_manifest_index = (quint32)-1;
-    quint32 str_application_index = (quint32)-1;
-    quint32 str_icon_index = (quint32)-1;
+    quint32 str_manifest_index = (quint32) - 1;
+    quint32 str_application_index = (quint32) - 1;
+    quint32 str_icon_index = (quint32) - 1;
     bool in_manifest_node = false;
 
     while (!in.atEnd()) {
@@ -99,9 +99,9 @@ static quint32 get_application_icon_resource_reference_id(const QByteArray& stre
                         str_icon_index = i;
                     }
                     delete[] utf16str;
-                    if (str_manifest_index != (quint32)-1
-                        && str_application_index != (quint32)-1
-                        && str_icon_index != (quint32)-1)
+                    if (str_manifest_index != (quint32) - 1
+                            && str_application_index != (quint32) - 1
+                            && str_icon_index != (quint32) - 1)
                         break;
                 }
             }
@@ -294,46 +294,46 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
     return iconpaths;
 }
 
-bool ApkCreator::create( const QString& path, int width, int height, QImage& img )
+bool ApkCreator::create(const QString& path, int width, int height, QImage& img)
 {
-    KZip zip( path );
-    if ( !zip.open( QIODevice::ReadOnly ) )
+    KZip zip(path);
+    if (!zip.open(QIODevice::ReadOnly))
         return false;
 
     // get iconid from AndroidManifest.xml
-    const KArchiveEntry* manifestEntry = zip.directory()->entry( "AndroidManifest.xml" );
+    const KArchiveEntry* manifestEntry = zip.directory()->entry("AndroidManifest.xml");
     const KZipFileEntry* manifestFile = static_cast<const KZipFileEntry*>(manifestEntry);
-    if ( !manifestFile )
+    if (!manifestFile)
         return false;
 
-    quint32 iconid = get_application_icon_resource_reference_id( manifestFile->data() );
-    if ( iconid == (quint32)-1 )
+    quint32 iconid = get_application_icon_resource_reference_id(manifestFile->data());
+    if (iconid == (quint32) - 1)
         return false;
 
     // get iconpaths from resources.arsc
-    const KArchiveEntry* resourcesEntry = zip.directory()->entry( "resources.arsc" );
+    const KArchiveEntry* resourcesEntry = zip.directory()->entry("resources.arsc");
     const KZipFileEntry* resourcesFile = static_cast<const KZipFileEntry*>(resourcesEntry);
-    if ( !resourcesFile )
+    if (!resourcesFile)
         return false;
 
-    QStringList iconpaths = get_application_icon_resource_path( resourcesFile->data(), iconid );
-    if ( iconpaths.isEmpty() )
+    QStringList iconpaths = get_application_icon_resource_path(resourcesFile->data(), iconid);
+    if (iconpaths.isEmpty())
         return false;
 
     // read image from package at iconpaths
     foreach (const QString& iconpath, iconpaths) {
-        const KArchiveEntry* iconEntry = zip.directory()->entry( iconpath );
+        const KArchiveEntry* iconEntry = zip.directory()->entry(iconpath);
         const KZipFileEntry* iconFile = static_cast<const KZipFileEntry*>(iconEntry);
-        if ( !iconFile )
+        if (!iconFile)
             return false;
 
         QImage icon;
-        icon.loadFromData( iconFile->data() );
-        if ( icon.width() * icon.height() > img.width() * img.height() )
+        icon.loadFromData(iconFile->data());
+        if (icon.width() * icon.height() > img.width() * img.height())
             img = icon;
     }
 
-    if ( img.isNull() )
+    if (img.isNull())
         return false;
 
     return true;
