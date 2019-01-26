@@ -1,6 +1,6 @@
 # KDE Thumbnailer APK
 
-Based on https://store.kde.org/p/1081013/, updated and working for Qt 5.7.1 & KF 5.30.0.
+Based on https://store.kde.org/p/1081013/, updated and working for Qt 5.12.0 & KDE Frameworks 5.54.0.
 
 ## Installation
 
