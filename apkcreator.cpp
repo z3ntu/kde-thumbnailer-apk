@@ -22,6 +22,7 @@
 
 #include "apkcreator.h"
 
+#include <QDebug>
 #include <QImage>
 #include <KZip>
 
@@ -196,6 +197,7 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
         quint16 chunk_header_size;
         quint32 chunk_size;
         in >> chunk_type >> chunk_header_size >> chunk_size;
+//         qDebug() << "chunk_start:" << chunk_start << "chunk_type:" << chunk_type << "chunk_header_size:" << chunk_header_size << "chunk_size:" << chunk_size;
 
         switch (chunk_type) {
         case 0x0002/*RES_TABLE_TYPE*/: {
@@ -217,6 +219,12 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
             in.readRawData((char*)name, 128 * sizeof(quint16));
             // skip type_strings last_public_type key_strings last_public_key
             in.skipRawData(4 * sizeof(quint32));
+            if(chunk_header_size == 288) { // "old" size (without typeIdOffset) is 284
+                // typeIdOffset was added platform_frameworks_base/@f90f2f8dc36e7243b85e0b6a7fd5a590893c827e
+                // which is only in split/new applications.
+                // See https://github.com/iBotPeaches/Apktool/blob/29355f876dc1383bd7d7a8f0840aa36840e73063/brut.apktool/apktool-lib/src/main/java/brut/androlib/res/decoder/ARSCDecoder.java#L108
+                in.skipRawData(sizeof(quint32));
+            }
             break;
         }
         case 0x0201/*RES_TABLE_TYPE_TYPE*/: {
@@ -256,8 +264,10 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
                     // get string from string_pool_start
                     quint32 oldpos = in.device()->pos();
                     in.device()->seek(string_pool_start);
-                    // skip chunk header string_count style_count flags
-                    in.skipRawData(5 * sizeof(quint32));
+                    // skip chunk header string_count style_count
+                    in.skipRawData(4 * sizeof(quint32));
+                    quint32 flags;
+                    in >> flags;
                     quint32 strings_start;
                     in >> strings_start;
                     // skip styles_start
@@ -270,13 +280,26 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
 
                     // get string data at string_offset
                     in.device()->seek(string_pool_start + strings_start + string_offset);
-                    quint16 len;
-                    in >> len;
-                    // utf-16 string
-                    quint16* utf16str = new quint16[len];
-                    in.readRawData((char*)utf16str, len * sizeof(quint16));
-                    iconpaths << QString::fromUtf16(utf16str, len);
-                    delete[] utf16str;
+
+                    if(flags & 1<<8/*UTF8_FLAG*/) {
+                        // utf-8 string
+                        quint8 len;
+                        in >> len;
+                        // Skip 'the length of the UTF-8 encoding of the string in bytes'
+                        in.skipRawData(sizeof(quint8));
+                        char* utf8str = new char[len];
+                        in.readRawData((char*)utf8str, len * sizeof(quint8));
+                        iconpaths << QString::fromUtf8(utf8str, len);
+                        delete[] utf8str;
+                    } else {
+                        // utf-16 string
+                        quint16 len;
+                        in >> len;
+                        quint16* utf16str = new quint16[len];
+                        in.readRawData((char*)utf16str, len * sizeof(quint16));
+                        iconpaths << QString::fromUtf16(utf16str, len);
+                        delete[] utf16str;
+                    }
 
                     in.device()->seek(oldpos);
                 }
@@ -285,6 +308,7 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
             break;
         }
         default: {
+//             qDebug() << "unhandled chunk!";
             in.skipRawData(chunk_size - 8);
             break;
         }
@@ -294,38 +318,53 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
     return iconpaths;
 }
 
-bool ApkCreator::create(const QString& path, int width, int height, QImage& img)
+bool ApkCreator::create(const QString& path, int /*width*/, int /*height*/, QImage& img)
 {
     KZip zip(path);
-    if (!zip.open(QIODevice::ReadOnly))
+    if (!zip.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open zip.";
+        qDebug().noquote() << "Error message:" << zip.errorString();
+
         return false;
+    }
 
     // get iconid from AndroidManifest.xml
     const KArchiveEntry* manifestEntry = zip.directory()->entry("AndroidManifest.xml");
     const KZipFileEntry* manifestFile = static_cast<const KZipFileEntry*>(manifestEntry);
-    if (!manifestFile)
+    if (!manifestFile) {
+        qDebug() << "Failed to find manifestFile";
         return false;
+    }
 
     quint32 iconid = get_application_icon_resource_reference_id(manifestFile->data());
-    if (iconid == (quint32) - 1)
+    if (iconid == (quint32) - 1) {
+        qDebug() << "Failed to find icon ID";
         return false;
+    }
+//     qDebug() << "iconid:" << iconid;
 
     // get iconpaths from resources.arsc
     const KArchiveEntry* resourcesEntry = zip.directory()->entry("resources.arsc");
     const KZipFileEntry* resourcesFile = static_cast<const KZipFileEntry*>(resourcesEntry);
-    if (!resourcesFile)
+    if (!resourcesFile) {
+        qDebug() << "Failed to find resourcesFile";
         return false;
+    }
 
     QStringList iconpaths = get_application_icon_resource_path(resourcesFile->data(), iconid);
-    if (iconpaths.isEmpty())
+    if (iconpaths.isEmpty()) {
+        qDebug() << "Failed to get iconpaths";
         return false;
+    }
 
     // read image from package at iconpaths
     foreach (const QString& iconpath, iconpaths) {
         const KArchiveEntry* iconEntry = zip.directory()->entry(iconpath);
         const KZipFileEntry* iconFile = static_cast<const KZipFileEntry*>(iconEntry);
-        if (!iconFile)
+        if (!iconFile) {
+            qDebug() << "Failed to find iconFile";
             return false;
+        }
 
         QImage icon;
         icon.loadFromData(iconFile->data());
@@ -333,8 +372,10 @@ bool ApkCreator::create(const QString& path, int width, int height, QImage& img)
             img = icon;
     }
 
-    if (img.isNull())
+    if (img.isNull()) {
+        qDebug() << "Failed to get image";
         return false;
+    }
 
     return true;
 }

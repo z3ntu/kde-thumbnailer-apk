@@ -30,7 +30,7 @@ class ApkCreator : public ThumbCreator
 public:
     explicit ApkCreator();
     virtual ~ApkCreator();
-    virtual bool create(const QString& path, int width, int height, QImage& img);
+    bool create(const QString& path, int /*width*/, int /*height*/, QImage& img) override;
 };
 
 #endif // APKCREATOR_H

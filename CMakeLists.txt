@@ -23,6 +23,11 @@ target_link_libraries(apkthumbnail PRIVATE
      Qt5::Widgets KF5::KIOWidgets KF5::Archive
 )
 
+add_executable(apkthumbnail_test test.cpp apkcreator.cpp)
+target_link_libraries(apkthumbnail_test
+     Qt5::Widgets KF5::KIOWidgets KF5::Archive
+)
+
 install(TARGETS apkthumbnail DESTINATION ${PLUGIN_INSTALL_DIR})
 install(FILES apkthumbnail.desktop DESTINATION ${SERVICES_INSTALL_DIR})
 install(FILES apk.xml DESTINATION ${XDG_MIME_INSTALL_DIR})
