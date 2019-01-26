@@ -1,7 +1,7 @@
 /*
  *  This file is part of kde-thumbnailer-apk
  *  Copyright (C) 2013 Ni Hui <shuizhuyuanluo@126.com>
- *  Copyright (C) 2017 Luca Weiss <luca (at) z3ntu (dot) xyz>
+ *  Copyright (C) 2017-2019 Luca Weiss <luca (at) z3ntu (dot) xyz>
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
