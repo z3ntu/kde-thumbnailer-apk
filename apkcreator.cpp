@@ -24,7 +24,9 @@
 
 #include <QDebug>
 #include <QImage>
-#include <KZip>
+
+#include <archive.h>
+#include <archive_entry.h>
 
 extern "C" {
     Q_DECL_EXPORT ThumbCreator* new_creator()
@@ -318,25 +320,62 @@ static QStringList get_application_icon_resource_path(const QByteArray& stream, 
     return iconpaths;
 }
 
+static std::optional<QByteArray> getDataFromFileInArchive(const QString &archive_name, const QString &file_name) {
+    // TODO Do we need to re-open the archive every time?
+    struct archive *a;
+    struct archive_entry *entry;
+    int r;
+
+    a = archive_read_new();
+    archive_read_support_filter_all(a);
+    archive_read_support_format_zip(a);
+    r = archive_read_open_filename(a, archive_name.toStdString().c_str(), 10240);
+    if (r != ARCHIVE_OK) {
+        qDebug() << "Failed to open " << archive_name;
+        return {};
+    }
+
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        QString entry_name = QString(archive_entry_pathname(entry));
+
+        if (entry_name != file_name) {
+            archive_read_data_skip(a);
+            continue;
+        }
+
+        la_int64_t entry_size = archive_entry_size(entry);
+        QByteArray data(entry_size, Qt::Uninitialized);
+
+        r = archive_read_data(a, data.data(), entry_size);
+        if (r < 0) {
+            qDebug() << "Failed to read data!";
+            goto err;
+        }
+
+        return data;
+    }
+
+err:
+    r = archive_read_free(a);
+    if (r != ARCHIVE_OK) {
+        qDebug() << "Failed to free archive";
+        return {};
+    }
+
+    return {};
+}
+
+
 bool ApkCreator::create(const QString& path, int /*width*/, int /*height*/, QImage& img)
 {
-    KZip zip(path);
-    if (!zip.open(QIODevice::ReadOnly)) {
-        qDebug() << "Failed to open zip.";
-        qDebug().noquote() << "Error message:" << zip.errorString();
-
-        return false;
-    }
-
     // get iconid from AndroidManifest.xml
-    const KArchiveEntry* manifestEntry = zip.directory()->entry("AndroidManifest.xml");
-    const KZipFileEntry* manifestFile = static_cast<const KZipFileEntry*>(manifestEntry);
-    if (!manifestFile) {
-        qDebug() << "Failed to find manifestFile";
+    std::optional<QByteArray> manifestFile = getDataFromFileInArchive(path, "AndroidManifest.xml");
+    if (!manifestFile.has_value()) {
+        qDebug() << "Failed to find AndroidManifest.xml";
         return false;
     }
 
-    quint32 iconid = get_application_icon_resource_reference_id(manifestFile->data());
+    quint32 iconid = get_application_icon_resource_reference_id(manifestFile.value());
     if (iconid == (quint32) - 1) {
         qDebug() << "Failed to find icon ID";
         return false;
@@ -344,30 +383,30 @@ bool ApkCreator::create(const QString& path, int /*width*/, int /*height*/, QIma
 //     qDebug() << "iconid:" << iconid;
 
     // get iconpaths from resources.arsc
-    const KArchiveEntry* resourcesEntry = zip.directory()->entry("resources.arsc");
-    const KZipFileEntry* resourcesFile = static_cast<const KZipFileEntry*>(resourcesEntry);
-    if (!resourcesFile) {
-        qDebug() << "Failed to find resourcesFile";
+    std::optional<QByteArray> resourcesFile = getDataFromFileInArchive(path, "resources.arsc");
+    if (!resourcesFile.has_value()) {
+        qDebug() << "Failed to find resources.arsc";
         return false;
     }
 
-    QStringList iconpaths = get_application_icon_resource_path(resourcesFile->data(), iconid);
+    QStringList iconpaths = get_application_icon_resource_path(resourcesFile.value(), iconid);
     if (iconpaths.isEmpty()) {
         qDebug() << "Failed to get iconpaths";
         return false;
     }
 
+    qDebug() << "iconpaths: " << iconpaths;
+
     // read image from package at iconpaths
     foreach (const QString& iconpath, iconpaths) {
-        const KArchiveEntry* iconEntry = zip.directory()->entry(iconpath);
-        const KZipFileEntry* iconFile = static_cast<const KZipFileEntry*>(iconEntry);
-        if (!iconFile) {
-            qDebug() << "Failed to find iconFile";
+        std::optional<QByteArray> iconFile = getDataFromFileInArchive(path, iconpath);
+        if (!iconFile.has_value()) {
+            qDebug() << "Failed to find" << iconpath;
             return false;
         }
 
         QImage icon;
-        icon.loadFromData(iconFile->data());
+        icon.loadFromData(iconFile.value());
         if (icon.width() * icon.height() > img.width() * img.height())
             img = icon;
     }
