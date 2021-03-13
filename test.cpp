@@ -49,8 +49,11 @@ int main(int argc, char* argv[])
         qDebug() << "Success:" << ret;
         if (ret) {
             QFileInfo fi(file);
-            QString pngFileName = QString("%1/%2.png").arg(fi.dir().path(), fi.completeBaseName());
-            image.save(QString(pngFileName));
+            QString pngFileName = QString("/tmp/%1.png").arg(fi.completeBaseName());
+            if (!image.save(QString(pngFileName))) {
+                qDebug() << "Failed to save image to" << pngFileName;
+                continue;
+            }
             qDebug() << "Saved image to" << pngFileName;
         }
     }

@@ -1,6 +1,8 @@
 project(kde-thumbnailer-apk)
 cmake_minimum_required(VERSION 2.8.12)
 
+set(CMAKE_CXX_STANDARD 17)
+
 set(SHARED_MIME_INFO_MINIMUM_VERSION "0.30")
 
 find_package(ECM REQUIRED NO_MODULE)
@@ -13,19 +15,19 @@ include(FeatureSummary)
 
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(KF5 REQUIRED COMPONENTS KIO Archive)
-
 find_package(SharedMimeInfo REQUIRED)
+find_package(LibArchive REQUIRED)
 
 set(apkthumbnail_SRCS apkcreator.cpp)
 
 add_library(apkthumbnail MODULE ${apkthumbnail_SRCS})
 target_link_libraries(apkthumbnail PRIVATE
-     Qt5::Widgets KF5::KIOWidgets KF5::Archive
+     Qt5::Widgets KF5::KIOWidgets KF5::Archive ${LibArchive_LIBRARIES}
 )
 
 add_executable(apkthumbnail_test test.cpp apkcreator.cpp)
 target_link_libraries(apkthumbnail_test
-     Qt5::Widgets KF5::KIOWidgets KF5::Archive
+     Qt5::Widgets KF5::KIOWidgets KF5::Archive ${LibArchive_LIBRARIES}
 )
 
 install(TARGETS apkthumbnail DESTINATION ${PLUGIN_INSTALL_DIR})
