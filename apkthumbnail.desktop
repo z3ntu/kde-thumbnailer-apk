@@ -2,6 +2,7 @@
 Encoding=UTF-8
 Type=Service
 Name=Android Application Package File
+Name[nl]=Android-pakketbestand
 Name[zh_CN]=安卓应用程序软件包文件
 ServiceTypes=ThumbCreator
 MimeType=application/vnd.android.package-archive;
